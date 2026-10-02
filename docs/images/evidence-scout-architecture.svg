@@ -47,11 +47,11 @@
 
 <rect x="1090" y="230" width="170" height="250" rx="16" fill="url(#blue)" stroke="#2f87ff" stroke-width="2"/>
 <text x="1175" y="292" text-anchor="middle" class="label">Draft Response</text>
-<text x="1114" y="335" class="body"><tspan x="1114" dy="0">Model synthesizes</tspan><tspan x="1114" dy="22">only retrieved,</tspan><tspan x="1114" dy="22">verified evidence.</tspan></text>
+<text x="1114" y="335" class="body"><tspan x="1114" dy="0">Model synthesizes</tspan><tspan x="1114" dy="22">the retrieved</tspan><tspan x="1114" dy="22">research evidence.</tspan></text>
 
 <rect x="1300" y="230" width="220" height="250" rx="16" fill="url(#teal)" stroke="#38d9c5" stroke-width="2"/>
 <text x="1410" y="285" text-anchor="middle" class="label">Deterministic</text><text x="1410" y="312" text-anchor="middle" class="label">Citation Gate</text>
-<text x="1325" y="350" class="body"><tspan x="1325" dy="0">Independent Python check</tspan><tspan x="1325" dy="22">outside the LLM.</tspan><tspan x="1325" dy="22">Unverified citations</tspan><tspan x="1325" dy="22">withhold the draft.</tspan></text>
+<text x="1325" y="350" class="body"><tspan x="1325" dy="0">Python check outside</tspan><tspan x="1325" dy="22">the LLM compares cited</tspan><tspan x="1325" dy="22">IDs with the per-run</tspan><tspan x="1325" dy="22">verification registry.</tspan></text>
 </g>
 
 <!-- arrows -->
