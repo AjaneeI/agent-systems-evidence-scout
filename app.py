@@ -110,19 +110,20 @@ CSS = """
     margin: 0;
 }
 #trust-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
     margin: 16px 0 24px;
 }
 .trust-chip {
-    padding: 7px 11px;
+    padding: 11px 12px;
     border: 1px solid #2b4565;
-    border-radius: 999px;
+    border-radius: 12px;
     background: #0d1a2d;
     color: #b9c8df;
     font-size: 12px;
     font-weight: 650;
+    text-align: center;
 }
 .trust-chip.verified {
     border-color: #1f6b68;
@@ -161,14 +162,43 @@ CSS = """
     margin-top: 20px;
 }
 #contract {
+    border: 1px solid #1f6b68;
     border-left: 3px solid #39d8c3;
     background: #0b2025;
-    border-radius: 10px;
-    padding: 12px 14px;
+    border-radius: 12px;
+    padding: 14px 15px;
     color: #a9dcd5;
     font-size: 13px;
     line-height: 1.5;
     margin-top: 10px;
+}
+#contract-list {
+    margin: 9px 0 0;
+    padding: 0;
+    list-style: none;
+}
+#contract-list li {
+    margin: 5px 0;
+    color: #b7d8d3;
+}
+#contract-list li::before {
+    content: "✓";
+    color: #39d8c3;
+    font-weight: 800;
+    margin-right: 8px;
+}
+#result-intro {
+    padding: 10px 4px 2px;
+}
+#result-intro strong {
+    color: #f7f9ff;
+}
+#result-intro span {
+    color: #8fa4c2;
+    font-size: 13px;
+}
+#result-shell .prose a {
+    color: #65a2ff !important;
 }
 .footer-note {
     color: #70839f;
@@ -179,6 +209,7 @@ CSS = """
 @media (max-width: 760px) {
     .gradio-container { padding: 18px 12px 32px !important; }
     #hero { padding: 20px; }
+    #trust-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 """
 
@@ -224,17 +255,17 @@ def build_demo() -> gr.Blocks:
               </p>
             </section>
             <div id="trust-row">
-              <span class="trust-chip">arXiv research</span>
-              <span class="trust-chip verified">✓ Citation verification</span>
-              <span class="trust-chip">6-step ceiling</span>
-              <span class="trust-chip">Bounded tools</span>
+              <span class="trust-chip">⌕&nbsp; arXiv research only</span>
+              <span class="trust-chip verified">✓&nbsp; Citation verification</span>
+              <span class="trust-chip">↯&nbsp; 6-step ceiling</span>
+              <span class="trust-chip">◇&nbsp; Bounded tools</span>
             </div>
             """
         )
 
         with gr.Row(elem_id="workspace"):
             with gr.Column(scale=5, elem_classes=["panel"]):
-                gr.Markdown("### Research question")
+                gr.Markdown("### What would you like to research?\nAsk a focused question and Evidence Scout will retrieve and verify supporting arXiv evidence.")
                 question = gr.Textbox(
                     lines=7,
                     show_label=False,
@@ -263,18 +294,30 @@ def build_demo() -> gr.Blocks:
                     """
                     <div id="contract">
                       <strong>Evidence contract</strong><br>
-                      Supporting arXiv citations must be verified during the same run.
-                      The final check happens in deterministic Python outside the model.
+                      The model explores. Deterministic Python verifies.
+                      <ul id="contract-list">
+                        <li>Supporting citations must resolve against arXiv</li>
+                        <li>Verification must happen during the same run</li>
+                        <li>Drafts are blocked when the citation contract fails</li>
+                      </ul>
                     </div>
                     """
                 )
 
             with gr.Column(scale=7, elem_classes=["panel"], elem_id="result-shell"):
-                gr.Markdown("### Verified evidence brief")
+                gr.HTML(
+                    """
+                    <div id="result-intro">
+                      <strong>Verified evidence brief</strong><br>
+                      <span>Findings · Evidence · Limitations · Verified references</span>
+                    </div>
+                    """
+                )
                 result = gr.Markdown(
                     value=(
-                        "_Your evidence brief will appear here with findings, supporting "
-                        "evidence, limitations, and verified references._"
+                        "### Ready to research\n\n"
+                        "Enter a research question to generate an evidence-backed brief. "
+                        "Every cited arXiv paper must pass the deterministic verification gate."
                     )
                 )
 
