@@ -81,7 +81,7 @@ def build_demo() -> gr.Interface:
         outputs=gr.Markdown(label="Verified evidence brief"),
         title="Agent Systems Evidence Scout",
         description=(
-            "CS 697 arXiv agent extension. Searches arXiv, verifies cited papers, "
+            "Evidence-controlled arXiv research agent. Searches arXiv, verifies cited papers, "
             "builds comparison evidence, and blocks final answers with unverified citations."
         ),
         examples=[
