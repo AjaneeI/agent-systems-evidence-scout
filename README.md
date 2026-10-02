@@ -23,30 +23,13 @@ Research agents can produce fluent answers while still citing papers they never 
 
 That boundary is the core design decision: **the model can choose tools, but it cannot waive its own sourcing requirement.**
 
-## Workflow
+## Architecture
 
-```text
-Research question
-      |
-      v
-  CodeAgent
-      |
-      +--> search_arxiv
-      |
-      +--> verify_arxiv_paper
-      |
-      +--> compare_arxiv_papers
-      |
-      v
-  evidence synthesis
-      |
-      v
-deterministic citation gate
-      |
-      +--> PASS: verified evidence brief
-      |
-      +--> FAIL: withhold draft + explain failure
-```
+<p align="center">
+  <img src="docs/images/evidence-scout-architecture.svg" alt="Agent Systems Evidence Scout architecture: research question flows through CodeAgent and bounded arXiv tools into a verified evidence registry, draft response, deterministic citation gate, and verified evidence brief" width="100%" />
+</p>
+
+The model controls research strategy; deterministic code controls whether the resulting evidence is allowed through.
 
 The user receives a compact brief with:
 
