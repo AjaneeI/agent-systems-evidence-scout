@@ -212,7 +212,7 @@ def run_research(question: str) -> str:
 
 
 def build_demo() -> gr.Blocks:
-    with gr.Blocks(theme=THEME, css=CSS, title="Agent Systems Evidence Scout") as demo:
+    with gr.Blocks(title="Agent Systems Evidence Scout") as demo:
         gr.HTML(
             """
             <section id="hero">
@@ -292,4 +292,4 @@ load_dotenv()
 demo = build_demo()
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(theme=THEME, css=CSS)
