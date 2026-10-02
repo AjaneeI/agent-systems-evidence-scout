@@ -4,6 +4,12 @@ An evidence-controlled arXiv research agent that lets an LLM choose research too
 
 **Stack:** Python · smolagents · Hugging Face Inference · arXiv · Gradio · pytest
 
+## Live demo
+
+![Agent Systems Evidence Scout live evidence brief](docs/images/evidence-scout-live-demo.png)
+
+*Successful live Hugging Face + arXiv run. The agent retrieved research, verified the papers supporting its response, and returned a structured evidence brief after the deterministic citation gate.*
+
 > Built as a CS 697 applied-AI project, extending the arXiv agent pattern demonstrated in Inal Mashukov's `UMBInal/arxiv-agent-lab` reference implementation. The reference architecture is credited below; the verification tools, deterministic citation gate, tests, integration hardening, and Evidence Scout workflow are this project's extension.
 
 ## The problem
