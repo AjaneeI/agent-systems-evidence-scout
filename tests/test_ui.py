@@ -6,8 +6,9 @@ def test_public_ui_uses_blocks_and_portfolio_copy():
 
     assert demo.__class__.__name__ == "Blocks"
     assert demo.title == "Agent Systems Evidence Scout"
-    assert "#07111f" in app.CSS
-    assert "#39d8c3" in app.CSS
+    assert app.THEME is not None
+    assert "#hero" in app.CSS
+    assert "#run-button" in app.CSS
 
 
 def test_public_ui_preserves_agent_limits():
