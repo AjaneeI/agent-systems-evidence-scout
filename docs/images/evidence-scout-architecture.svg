@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720" role="img" aria-labelledby="title desc">
+<title id="title">Agent Systems Evidence Scout architecture</title>
+<desc id="desc">Research question flows through a CodeAgent and bounded arXiv tools into a verified evidence registry, draft response, deterministic citation gate, and verified evidence brief.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1424"/></linearGradient>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#14223a"/><stop offset="1" stop-color="#10192d"/></linearGradient>
+  <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#102b2f"/><stop offset="1" stop-color="#0e1e2a"/></linearGradient>
+  <linearGradient id="purple" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1a1d3d"/><stop offset="1" stop-color="#11182b"/></linearGradient>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#76a9ff"/></marker>
+  <style>
+    .h1{font:700 44px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#f7f9ff}
+    .sub{font:400 19px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#a8b7d3}
+    .label{font:700 20px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#f7f9ff}
+    .body{font:400 15px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#b9c6dc}
+    .small{font:400 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#91a3c1}
+    .metric{font:700 25px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#f7f9ff}
+    .mono{font:600 14px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#d9e4f7}
+  </style>
+</defs>
+<rect width="1600" height="720" rx="24" fill="url(#bg)"/>
+<text x="48" y="56" class="small" letter-spacing="6">AGENT SYSTEMS</text>
+<text x="48" y="112" class="h1">Evidence <tspan fill="#5d8cff">Scout</tspan></text>
+<text x="48" y="145" class="sub">An arXiv research agent with deterministic citation verification.</text>
+<text x="48" y="174" class="sub" fill="#7f9ac5">Let the model explore. Make the evidence non-negotiable.</text>
+
+<!-- cards -->
+<g>
+<rect x="48" y="230" width="180" height="250" rx="16" fill="url(#blue)" stroke="#446a9d" stroke-width="2"/>
+<text x="138" y="290" text-anchor="middle" class="label">Research</text><text x="138" y="316" text-anchor="middle" class="label">Question</text>
+<text x="72" y="355" class="body"><tspan x="72" dy="0">Ask about a topic,</tspan><tspan x="72" dy="24">paper, or comparison.</tspan></text>
+
+<rect x="260" y="230" width="210" height="250" rx="16" fill="url(#purple)" stroke="#735dff" stroke-width="2"/>
+<text x="365" y="288" text-anchor="middle" class="label">CodeAgent</text>
+<text x="365" y="318" text-anchor="middle" class="body">Qwen via Hugging Face</text>
+<text x="286" y="360" class="body"><tspan x="286" dy="0">• plans steps</tspan><tspan x="286" dy="25">• chooses tools</tspan><tspan x="286" dy="25">• analyzes results</tspan><tspan x="286" dy="25">• drafts response</tspan></text>
+
+<rect x="510" y="205" width="310" height="300" rx="18" fill="#0d1727" stroke="#2d7cff" stroke-width="2" stroke-dasharray="7 6"/>
+<text x="665" y="238" text-anchor="middle" class="label">arXiv Tools</text>
+<rect x="535" y="258" width="260" height="62" rx="12" fill="url(#blue)" stroke="#345f94"/><text x="558" y="282" class="mono">search_arxiv</text><text x="558" y="305" class="small">Find relevant papers · max 5</text>
+<rect x="535" y="332" width="260" height="70" rx="12" fill="url(#blue)" stroke="#345f94"/><text x="558" y="357" class="mono">verify_arxiv_paper</text><text x="558" y="380" class="small">Validate metadata + canonical ID</text>
+<rect x="535" y="414" width="260" height="70" rx="12" fill="url(#blue)" stroke="#345f94"/><text x="558" y="439" class="mono">compare_arxiv_papers</text><text x="558" y="462" class="small">Compare verified papers · max 5</text>
+
+<rect x="860" y="230" width="190" height="250" rx="16" fill="url(#teal)" stroke="#38d9c5" stroke-width="2"/>
+<text x="955" y="286" text-anchor="middle" class="label">Verified Evidence</text><text x="955" y="312" text-anchor="middle" class="label">Registry</text>
+<text x="884" y="350" class="body"><tspan x="884" dy="0">Only verified arXiv</tspan><tspan x="884" dy="22">papers can support</tspan><tspan x="884" dy="22">the final response.</tspan></text>
+<text x="884" y="426" class="small" fill="#52e0c8">✓ canonical IDs</text><text x="884" y="451" class="small" fill="#52e0c8">✓ per-run verification</text>
+
+<rect x="1090" y="230" width="170" height="250" rx="16" fill="url(#blue)" stroke="#2f87ff" stroke-width="2"/>
+<text x="1175" y="292" text-anchor="middle" class="label">Draft Response</text>
+<text x="1114" y="335" class="body"><tspan x="1114" dy="0">Model synthesizes</tspan><tspan x="1114" dy="22">only retrieved,</tspan><tspan x="1114" dy="22">verified evidence.</tspan></text>
+
+<rect x="1300" y="230" width="220" height="250" rx="16" fill="url(#teal)" stroke="#38d9c5" stroke-width="2"/>
+<text x="1410" y="285" text-anchor="middle" class="label">Deterministic</text><text x="1410" y="312" text-anchor="middle" class="label">Citation Gate</text>
+<text x="1325" y="350" class="body"><tspan x="1325" dy="0">Independent Python check</tspan><tspan x="1325" dy="22">outside the LLM.</tspan><tspan x="1325" dy="22">Unverified citations</tspan><tspan x="1325" dy="22">withhold the draft.</tspan></text>
+</g>
+
+<!-- arrows -->
+<g fill="none" stroke="#76a9ff" stroke-width="3" marker-end="url(#arrow)">
+<path d="M228 355 H252"/><path d="M470 355 H502"/><path d="M820 355 H852"/><path d="M1050 355 H1082"/><path d="M1260 355 H1292"/>
+</g>
+
+<!-- outcome -->
+<rect x="1300" y="515" width="220" height="74" rx="14" fill="url(#purple)" stroke="#735dff" stroke-width="2"/>
+<text x="1410" y="546" text-anchor="middle" class="label">Verified Evidence Brief</text>
+<text x="1410" y="570" text-anchor="middle" class="small">findings · evidence · limits · references</text>
+<path d="M1410 480 V507" fill="none" stroke="#76a9ff" stroke-width="3" marker-end="url(#arrow)"/>
+
+<!-- failure loop -->
+<path d="M1410 230 V202 H365 V222" fill="none" stroke="#7388aa" stroke-width="2" stroke-dasharray="7 7" marker-end="url(#arrow)"/>
+<text x="890" y="195" text-anchor="middle" class="small">FAIL → withhold draft; agent can continue within the bounded step budget</text>
+
+<!-- metrics -->
+<rect x="48" y="620" width="1472" height="66" rx="14" fill="#0d1829" stroke="#253b5a"/>
+<line x1="400" y1="634" x2="400" y2="672" stroke="#29425f"/><line x1="760" y1="634" x2="760" y2="672" stroke="#29425f"/><line x1="1120" y1="634" x2="1120" y2="672" stroke="#29425f"/>
+<text x="80" y="655" class="metric" fill="#6da2ff">19</text><text x="125" y="651" class="body">deterministic tests passing</text><text x="125" y="671" class="small">unit + integration coverage</text>
+<text x="432" y="655" class="metric" fill="#8a75ff">4 steps</text><text x="525" y="651" class="body">successful live run</text><text x="525" y="671" class="small">real arXiv + Hugging Face</text>
+<text x="792" y="655" class="metric" fill="#5d8cff">6 steps</text><text x="890" y="651" class="body">maximum budget</text><text x="890" y="671" class="small">completed without increasing limit</text>
+<text x="1152" y="651" class="body" fill="#52e0c8">✓ deterministic guardrail</text><text x="1152" y="671" class="small">citations verified in code, not left to the model</text>
+</svg>
