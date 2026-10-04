@@ -67,10 +67,12 @@ def test_unexpected_programming_error_is_not_called_service_outage(monkeypatch):
     assert "programming bug" not in state.detail
 
 
-def test_begin_research_clears_stale_success_before_new_run():
+def test_begin_research_clears_stale_success_and_shows_one_loader():
     brief, status = app.begin_research()
-    assert "Researching" in brief
-    assert "Researching" in status
+    assert brief == ""
+    assert status.count("research-loader") == 1
+    assert 'role="status"' in status
+    assert "Researching evidence" in status
     assert "Citations verified" not in status
 
 
