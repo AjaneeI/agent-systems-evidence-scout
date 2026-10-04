@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import ast
+import json
 import os
+from collections.abc import Mapping
 
 from dotenv import load_dotenv
 import gradio as gr
@@ -335,6 +338,68 @@ def build_agent() -> CodeAgent:
     )
 
 
+def _markdown_value(value) -> str:
+    if isinstance(value, (list, tuple)):
+        return "\n".join(f"- {str(item).strip()}" for item in value if str(item).strip())
+    return str(value).strip()
+
+
+def _mapping_section(mapping: Mapping, *aliases: str):
+    normalized = {str(key).strip().lower(): value for key, value in mapping.items()}
+    for alias in aliases:
+        if alias in normalized:
+            return normalized[alias]
+    return None
+
+
+def _mapping_to_markdown(mapping: Mapping) -> str | None:
+    sections = [
+        ("Findings", ("findings",)),
+        ("Evidence", ("evidence",)),
+        (
+            "Uncertainty / limitations",
+            ("uncertainty / limitations", "uncertainty/limitations", "limitations", "uncertainty"),
+        ),
+        (
+            "Verified references",
+            ("verified references", "verified_references", "references"),
+        ),
+    ]
+
+    rendered = []
+    for heading, aliases in sections:
+        value = _mapping_section(mapping, *aliases)
+        if value is None:
+            continue
+        body = _markdown_value(value)
+        if body:
+            rendered.append(f"## {heading}\n{body}")
+
+    return "\n\n".join(rendered) if rendered else None
+
+
+def normalize_agent_output(raw) -> str:
+    if isinstance(raw, Mapping):
+        return _mapping_to_markdown(raw) or str(raw)
+
+    if not isinstance(raw, str):
+        return str(raw)
+
+    text = raw.strip()
+    if not (text.startswith("{") and text.endswith("}")):
+        return raw
+
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            parsed = parser(text)
+        except (ValueError, SyntaxError, TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(parsed, Mapping):
+            return _mapping_to_markdown(parsed) or raw
+
+    return raw
+
+
 def run_research_outcome(question: str):
     question = (question or "").strip()
     if not question:
@@ -350,7 +415,8 @@ def run_research_outcome(question: str):
     reset_verification_registry()
     try:
         agent = build_agent()
-        draft = str(agent.run(f"{SYSTEM_TASK}\n\nResearch question:\n{question}"))
+        raw_result = agent.run(f"{SYSTEM_TASK}\n\nResearch question:\n{question}")
+        draft = normalize_agent_output(raw_result)
     except (ConnectionError, TimeoutError, OSError):
         return error_outcome(
             "service",
