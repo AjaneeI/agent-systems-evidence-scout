@@ -14,7 +14,6 @@ from tools import (
     reset_verification_registry,
     search_arxiv,
     verify_arxiv_paper,
-    get_verified_arxiv_ids,
 )
 
 MODEL_ID = "Qwen/Qwen2.5-Coder-32B-Instruct"
@@ -143,7 +142,13 @@ CSS = """
     background: #0d1829 !important;
     padding: 16px !important;
 }
-#research-panel, #result-shell { min-height: 390px; }
+#research-panel, #result-shell {
+    min-height: 390px;
+    border: 1px solid #253b5a !important;
+    border-radius: 16px !important;
+    background: #0d1829 !important;
+    padding: 16px !important;
+}
 #section-kicker {
     color: #6fa1f4;
     font-size: 11px;
