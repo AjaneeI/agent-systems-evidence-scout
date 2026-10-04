@@ -1,5 +1,6 @@
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+import re
+from playwright.sync_api import expect, sync_playwright
 
 BASE_URL = "http://127.0.0.1:7860"
 OUT = Path("/tmp/evidence-scout-ui")
@@ -19,8 +20,8 @@ with sync_playwright() as p:
 
     example = page.get_by_role("button", name="Reliability or failure modes in LLM agents")
     example.click()
-    textbox = page.locator("textarea").first
-    assert "reliability or failure modes" in textbox.input_value().lower()
+    textbox = page.locator("#question-box textarea")
+    expect(textbox).to_have_value(re.compile("reliability or failure modes", re.IGNORECASE), timeout=5000)
     assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
 
     mobile = browser.new_page(viewport={"width": 390, "height": 844})
