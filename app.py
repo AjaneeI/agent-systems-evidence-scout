@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import gradio as gr
 from smolagents import CodeAgent, InferenceClientModel
 
-from guardrails import enforce_final_answer
+from guardrails import validate_final_answer
 from tools import (
     compare_arxiv_papers,
     reset_verification_registry,
@@ -216,6 +216,24 @@ CSS = """
     margin-top: 17px;
 }
 #result-shell .prose a { color: #65a2ff !important; }
+#status-slot { margin: 8px 0 10px; }
+.status-card { display:flex; gap:10px; align-items:center; border-radius:11px; padding:10px 12px; border:1px solid #294361; background:#0b1728; }
+.status-card .status-icon { width:24px; height:24px; border-radius:50%; display:grid; place-items:center; font-weight:800; flex:0 0 auto; }
+.status-card strong { display:block; color:#f4f7fc; font-size:12px; }
+.status-card span { color:#8fa4c2; font-size:11px; }
+.status-card.success { border-color:#1f6b68; background:#0b2025; }
+.status-card.success .status-icon { background:#123f3d; color:#63decf; }
+.status-card.blocked { border-color:#705d2e; background:#241e10; }
+.status-card.blocked .status-icon { background:#4a3b16; color:#f2c96b; }
+.status-card.error { border-color:#643846; background:#24141a; }
+.status-card.error .status-icon { background:#48212c; color:#f28da7; }
+.activity { border-top:1px solid #253b5a; margin-top:12px; padding-top:12px; }
+.activity-title { color:#8fa4c2; font-size:10px; font-weight:750; letter-spacing:.11em; text-transform:uppercase; margin-bottom:7px; }
+.activity ul { list-style:none; padding:0; margin:0; }
+.activity li { color:#91a3bf; font-size:11px; margin:7px 0; display:flex; gap:8px; align-items:center; }
+.activity li span { width:7px; height:7px; border-radius:50%; background:#51637d; }
+.activity li.done span { background:#39d8c3; box-shadow:0 0 0 3px rgba(57,216,195,.08); }
+.activity li.blocked span { background:#e3b85e; }
 #contract-wrap {
     margin-top: 14px;
     border: 1px solid #1f6b68;
@@ -292,138 +310,52 @@ def build_agent() -> CodeAgent:
     )
 
 
-def run_research(question: str) -> str:
+def _status_html(kind: str, title: str, detail: str) -> str:
+    icon = {"success": "✓", "blocked": "!", "error": "×", "working": "●"}.get(kind, "•")
+    return (
+        f'<div class="status-card {kind}"><span class="status-icon">{icon}</span>'
+        f'<div><strong>{title}</strong><span>{detail}</span></div></div>'
+    )
+
+
+def _activity_html(items: list[tuple[str, str]]) -> str:
+    rows = "".join(f'<li class="{state}"><span></span>{label}</li>' for state, label in items)
+    return f'<div class="activity"><div class="activity-title">Research activity</div><ul>{rows}</ul></div>'
+
+
+def run_research(question: str):
     question = (question or "").strip()
     if not question:
-        return "Enter a research question."
+        return "### Ready to research\n\nEnter a focused research question to begin.", _status_html("error", "Add a research question", "Nothing was sent to the agent."), _activity_html([])
     if len(question) > 500:
-        return "Please keep the research question to 500 characters or fewer."
+        return "### Question is too long\n\nPlease keep the research question to 500 characters or fewer.", _status_html("error", "Question limit exceeded", "Shorten the prompt and try again."), _activity_html([])
 
     reset_verification_registry()
-    agent = build_agent()
-    draft = agent.run(f"{SYSTEM_TASK}\n\nResearch question:\n{question}")
-    return enforce_final_answer(str(draft))
+    try:
+        agent = build_agent()
+        draft = str(agent.run(f"{SYSTEM_TASK}\\n\\nResearch question:\\n{question}"))
+        gate = validate_final_answer(draft)
+        verified_count = len(get_verified_arxiv_ids())
+        activity = _activity_html([
+            ("done", "Agent completed the bounded research run"),
+            ("done", f"Verified {verified_count} supporting arXiv paper{'s' if verified_count != 1 else ''}"),
+            ("done" if gate.passed else "blocked", "Applied deterministic citation gate"),
+        ])
+        if gate.passed:
+            return draft, _status_html("success", "Evidence contract satisfied", f"{verified_count} supporting paper{'s' if verified_count != 1 else ''} verified in this run."), activity
 
-
-def build_demo() -> gr.Blocks:
-    with gr.Blocks(title="Agent Systems Evidence Scout") as demo:
-        gr.HTML(
-            """
-            <section id="hero">
-              <div id="eyebrow">Agent Systems</div>
-              <h1>Evidence <span>Scout</span></h1>
-              <p>
-                Evidence-controlled arXiv research. The model explores the research path;
-                deterministic Python verifies the citations that support the answer.
-              </p>
-            </section>
-            <div id="trust-row">
-              <span class="trust-chip">⌕&nbsp; arXiv research only</span>
-              <span class="trust-chip verified">✓&nbsp; Citation verification</span>
-              <span class="trust-chip">↯&nbsp; 6-step ceiling</span>
-              <span class="trust-chip">◇&nbsp; Bounded tools</span>
-            </div>
-            """
-        )
-
-        with gr.Row(elem_id="workspace", equal_height=True):
-            with gr.Column(scale=11, elem_classes=["panel"], elem_id="research-panel"):
-                gr.HTML(
-                    """
-                    <div id="section-kicker">Research workspace</div>
-                    <div id="section-title">What would you like to research?</div>
-                    <div id="section-copy">
-                      Ask a focused question. Evidence Scout will search arXiv, verify
-                      supporting papers, and synthesize a grounded brief.
-                    </div>
-                    """
-                )
-                question = gr.Textbox(
-                    lines=5,
-                    show_label=False,
-                    elem_id="question-box",
-                    placeholder=(
-                        "Ask a focused research question…\n\n"
-                        "e.g. What evidence exists on when multi-agent systems "
-                        "outperform simpler single-agent approaches?"
-                    ),
-                    max_lines=8,
-                )
-                run_button = gr.Button(
-                    "Run evidence search  →",
-                    variant="primary",
-                    elem_id="run-button",
-                )
-                gr.HTML('<div id="section-kicker" style="margin-top:10px">Try an example</div>')
-                with gr.Row(elem_classes=["prompt-row"]):
-                    example_one = gr.Button(
-                        "Reliability or failure modes in LLM agents",
-                        elem_classes=["prompt-button"],
-                    )
-                    example_two = gr.Button(
-                        "Human oversight or guardrails for agentic AI",
-                        elem_classes=["prompt-button"],
-                    )
-
-            with gr.Column(scale=9, elem_classes=["panel"], elem_id="result-shell"):
-                gr.HTML(
-                    """
-                    <div id="result-intro">
-                      <strong>Verified evidence brief</strong><br>
-                      <span>Findings · Evidence · Limitations · Verified references</span>
-                    </div>
-                    """
+        blocked = "## Evidence contract not satisfied\n\n" + gate.reason + "\n\nThe underlying draft is intentionally withheld. Run the research task again so every cited paper can be verified before conclusions are shown."
+        return blocked, _status_html("blocked", "Draft withheld", "A citation requirement failed, so the model response was not released."), activity
+    except Exception:
+        return "## Research couldn't complete\n\nThe inference or research service did not return successfully. Your question is still available above; try the run again.", _status_html("error", "Research service unavailable", "The question was preserved. Retry when the external service is available."), _activity_html([("blocked", "Research run interrupted before verification completed")])                status = gr.HTML(
+                    value=_status_html("working", "Ready", "No research run has started yet."),
+                    elem_id="status-slot",
                 )
                 result = gr.Markdown(
                     value=(
                         "### Ready to research\n\n"
                         "Your evidence-backed brief will appear here after the agent retrieves "
-                        "and verifies supporting arXiv papers.\n\n"
-                        "**Verification boundary:** cited papers must pass the deterministic "
-                        "citation gate before the final response is released."
+                        "and verifies supporting arXiv papers."
                     )
                 )
-
-        gr.HTML(
-            """
-            <section id="contract-wrap">
-              <div id="contract-grid">
-                <div id="contract-title">
-                  Evidence contract
-                  <span>The model explores. Deterministic Python verifies.</span>
-                </div>
-                <ul id="contract-list">
-                  <li>Citations resolve against arXiv</li>
-                  <li>Verification happens in the same run</li>
-                  <li>Failed contracts withhold the draft</li>
-                </ul>
-              </div>
-            </section>
-            """
-        )
-
-        run_button.click(fn=run_research, inputs=question, outputs=result)
-        question.submit(fn=run_research, inputs=question, outputs=result)
-        example_one.click(
-            fn=lambda: "What recent arXiv work evaluates reliability or failure modes in LLM agents?",
-            inputs=None,
-            outputs=question,
-        )
-        example_two.click(
-            fn=lambda: "Compare two or more papers on human oversight or guardrails for agentic AI.",
-            inputs=None,
-            outputs=question,
-        )
-
-        gr.HTML(
-            '<div class="footer-note">Evidence Scout · retrieve → verify → synthesize → enforce</div>'
-        )
-
-    return demo
-
-
-load_dotenv()
-demo = build_demo()
-
-if __name__ == "__main__":
-    demo.launch(theme=THEME, css=CSS)
+                activity = gr.HTML(value=_activity_html([]), elem_id="activity-slot")
