@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import ast
+import json
 import os
+from collections.abc import Mapping
 
 from dotenv import load_dotenv
 import gradio as gr
 from smolagents import CodeAgent, InferenceClientModel
 
-from guardrails import enforce_final_answer
+from ui_state import blocked_outcome, error_outcome, invalid_outcome, success_outcome
+
+from guardrails import validate_final_answer
 from tools import (
     compare_arxiv_papers,
     reset_verification_registry,
@@ -45,7 +50,7 @@ THEME = gr.themes.Base(
     primary_hue="blue",
     secondary_hue="indigo",
     neutral_hue="slate",
-    font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"],
+    font=["ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
 ).set(
     body_background_fill="#07111f",
     body_background_fill_dark="#07111f",
@@ -140,7 +145,13 @@ CSS = """
     background: #0d1829 !important;
     padding: 16px !important;
 }
-#research-panel, #result-shell { min-height: 390px; }
+#research-panel, #result-shell {
+    min-height: 390px;
+    border: 1px solid #253b5a !important;
+    border-radius: 16px !important;
+    background: #0d1829 !important;
+    padding: 16px !important;
+}
 #section-kicker {
     color: #6fa1f4;
     font-size: 11px;
@@ -216,6 +227,119 @@ CSS = """
     margin-top: 17px;
 }
 #result-shell .prose a { color: #65a2ff !important; }
+#status-slot { margin: 8px 0 12px; }
+.status-card {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid #294361;
+    border-radius: 12px;
+    background: #0b1728;
+    padding: 10px 12px;
+}
+.status-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    font-weight: 800;
+    color: #a9bddb;
+    background: #17263a;
+}
+.status-copy strong { display: block; color: #f7f9ff; font-size: 12px; }
+.status-copy span { display: block; color: #91a3bf; font-size: 11px; line-height: 1.4; margin-top: 2px; }
+.status-card.success { border-color: #1f6b68; background: #0b2025; }
+.status-card.success .status-icon { color: #63decf; background: #123f3d; }
+.status-card.blocked { border-color: #705d2e; background: #241e10; }
+.status-card.blocked .status-icon { color: #f2c96b; background: #4a3b16; }
+.status-card.error { border-color: #643846; background: #24141a; }
+.status-card.error .status-icon { color: #f28da7; background: #48212c; }
+#verification-note {
+    color: #8296b3;
+    font-size: 11px;
+    line-height: 1.45;
+    margin-top: 10px;
+}
+.research-loader {
+    min-height: 250px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 28px 18px;
+}
+.loader-orbit {
+    width: 54px;
+    height: 54px;
+    position: relative;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    border: 1px solid rgba(105, 223, 208, .20);
+}
+.loader-orbit::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 2px solid rgba(79, 124, 255, .20);
+    border-top-color: #5d8cff;
+    border-right-color: #69dfd0;
+    animation: evidence-orbit 1.15s linear infinite;
+}
+.loader-orbit::after {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    top: -4px;
+    left: 23px;
+    border-radius: 50%;
+    background: #69dfd0;
+    box-shadow: 0 0 16px rgba(105, 223, 208, .65);
+    animation: evidence-orbit-dot 1.15s linear infinite;
+    transform-origin: 4px 31px;
+}
+.loader-title {
+    color: #f7f9ff;
+    font-size: 17px;
+    font-weight: 720;
+    margin-bottom: 6px;
+}
+.loader-copy {
+    color: #91a3bf;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.loader-track {
+    width: min(250px, 76%);
+    height: 3px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: #17263a;
+    margin: 18px auto 0;
+}
+.loader-track::after {
+    content: "";
+    display: block;
+    width: 42%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #4f7cff, #725fff, #39d8c3);
+    animation: evidence-track 1.6s ease-in-out infinite;
+}
+@keyframes evidence-orbit { to { transform: rotate(360deg); } }
+@keyframes evidence-orbit-dot { to { transform: rotate(360deg); } }
+@keyframes evidence-track {
+    0% { transform: translateX(-110%); opacity: .55; }
+    50% { opacity: 1; }
+    100% { transform: translateX(240%); opacity: .55; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .loader-orbit::before,
+    .loader-orbit::after,
+    .loader-track::after { animation: none !important; }
+}
 #contract-wrap {
     margin-top: 14px;
     border: 1px solid #1f6b68;
@@ -292,17 +416,151 @@ def build_agent() -> CodeAgent:
     )
 
 
-def run_research(question: str) -> str:
+def _markdown_value(value) -> str:
+    if isinstance(value, (list, tuple)):
+        return "\n".join(f"- {str(item).strip()}" for item in value if str(item).strip())
+    return str(value).strip()
+
+
+def _mapping_section(mapping: Mapping, *aliases: str):
+    normalized = {str(key).strip().lower(): value for key, value in mapping.items()}
+    for alias in aliases:
+        if alias in normalized:
+            return normalized[alias]
+    return None
+
+
+def _mapping_to_markdown(mapping: Mapping) -> str | None:
+    sections = [
+        ("Findings", ("findings",)),
+        ("Evidence", ("evidence",)),
+        (
+            "Uncertainty / limitations",
+            ("uncertainty / limitations", "uncertainty/limitations", "limitations", "uncertainty"),
+        ),
+        (
+            "Verified references",
+            ("verified references", "verified_references", "references"),
+        ),
+    ]
+
+    rendered = []
+    for heading, aliases in sections:
+        value = _mapping_section(mapping, *aliases)
+        if value is None:
+            continue
+        body = _markdown_value(value)
+        if body:
+            rendered.append(f"## {heading}\n{body}")
+
+    return "\n\n".join(rendered) if rendered else None
+
+
+def normalize_agent_output(raw) -> str:
+    if isinstance(raw, Mapping):
+        return _mapping_to_markdown(raw) or str(raw)
+
+    if not isinstance(raw, str):
+        return str(raw)
+
+    text = raw.strip()
+    findings_index = text.find("## Findings")
+    if findings_index > 0:
+        text = text[findings_index:]
+    if not (text.startswith("{") and text.endswith("}")):
+        return text
+
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            parsed = parser(text)
+        except (ValueError, SyntaxError, TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(parsed, Mapping):
+            return _mapping_to_markdown(parsed) or raw
+
+    return raw
+
+
+def run_research_outcome(question: str):
     question = (question or "").strip()
     if not question:
-        return "Enter a research question."
+        return invalid_outcome("Add a focused research question.")
     if len(question) > 500:
-        return "Please keep the research question to 500 characters or fewer."
+        return invalid_outcome("Keep the research question to 500 characters or fewer.")
+    if not os.environ.get("HF_TOKEN"):
+        return error_outcome(
+            "token",
+            "Set HF_TOKEN in the local environment before starting a research run.",
+        )
 
     reset_verification_registry()
-    agent = build_agent()
-    draft = agent.run(f"{SYSTEM_TASK}\n\nResearch question:\n{question}")
-    return enforce_final_answer(str(draft))
+    try:
+        agent = build_agent()
+        raw_result = agent.run(f"{SYSTEM_TASK}\n\nResearch question:\n{question}")
+        draft = normalize_agent_output(raw_result)
+    except (ConnectionError, TimeoutError, OSError):
+        return error_outcome(
+            "service",
+            "The inference or research service did not respond successfully. Your question is preserved; try again.",
+        )
+    except Exception:
+        return error_outcome(
+            "internal",
+            "Evidence Scout hit an unexpected application error before it could safely return a brief.",
+        )
+
+    gate = validate_final_answer(draft)
+    if not gate.passed:
+        return blocked_outcome(
+            reason=gate.reason,
+            cited_ids=gate.cited_ids,
+            verified_ids=gate.verified_ids,
+        )
+    return success_outcome(
+        draft,
+        cited_ids=gate.cited_ids,
+        verified_ids=gate.verified_ids,
+    )
+
+
+def run_research(question: str) -> str:
+    """Compatibility entry point used by tests and non-UI callers."""
+    outcome = run_research_outcome(question)
+    if outcome.brief:
+        return outcome.brief
+    return f"{outcome.title}\n\n{outcome.detail}"
+
+
+def render_status(outcome) -> str:
+    icon = {"ready": "•", "success": "✓", "blocked": "!", "error": "×"}.get(outcome.kind, "•")
+    return (
+        f'<div class="status-card {outcome.kind}">'
+        f'<span class="status-icon">{icon}</span>'
+        f'<div class="status-copy"><strong>{outcome.title}</strong>'
+        f'<span>{outcome.detail}</span></div></div>'
+    )
+
+
+def run_research_ui(question: str):
+    outcome = run_research_outcome(question)
+    brief = outcome.brief or f"### {outcome.title}\n\n{outcome.detail}"
+    return brief, render_status(outcome)
+
+
+def begin_research():
+    return (
+        "",
+        (
+            '<div class="research-loader" role="status" aria-live="polite" '
+            'aria-label="Researching evidence">'
+            '<div><div class="loader-orbit" aria-hidden="true"></div>'
+            '<div class="loader-title">Researching evidence</div>'
+            '<div class="loader-copy">Searching arXiv and verifying citations before the brief is released.</div>'
+            '<div class="loader-track" aria-hidden="true"></div></div></div>'
+        ),
+    )
+
+
 
 
 def build_demo() -> gr.Blocks:
@@ -374,14 +632,24 @@ def build_demo() -> gr.Blocks:
                     </div>
                     """
                 )
+                status = gr.HTML(
+                    value=(
+                        '<div class="status-card ready"><span class="status-icon">•</span>'
+                        '<div class="status-copy"><strong>Ready to research</strong>'
+                        '<span>No research run has started yet.</span></div></div>'
+                    ),
+                    elem_id="status-slot",
+                )
                 result = gr.Markdown(
                     value=(
                         "### Ready to research\n\n"
                         "Your evidence-backed brief will appear here after the agent retrieves "
-                        "and verifies supporting arXiv papers.\n\n"
-                        "**Verification boundary:** cited papers must pass the deterministic "
-                        "citation gate before the final response is released."
+                        "and verifies supporting arXiv papers."
                     )
+                )
+                gr.HTML(
+                    '<div id="verification-note">Citation verification checks paper identities '
+                    'against arXiv. It does not prove that every research claim is supported.</div>'
                 )
 
         gr.HTML(
@@ -402,8 +670,40 @@ def build_demo() -> gr.Blocks:
             """
         )
 
-        run_button.click(fn=run_research, inputs=question, outputs=result)
-        question.submit(fn=run_research, inputs=question, outputs=result)
+        run_event = run_button.click(
+            fn=begin_research,
+            inputs=None,
+            outputs=[result, status],
+            concurrency_limit=1,
+            concurrency_id="research",
+            trigger_mode="once",
+            show_progress="hidden",
+        )
+        run_event.then(
+            fn=run_research_ui,
+            inputs=question,
+            outputs=[result, status],
+            concurrency_limit=1,
+            concurrency_id="research",
+            show_progress="hidden",
+        )
+        submit_event = question.submit(
+            fn=begin_research,
+            inputs=None,
+            outputs=[result, status],
+            concurrency_limit=1,
+            concurrency_id="research",
+            trigger_mode="once",
+            show_progress="hidden",
+        )
+        submit_event.then(
+            fn=run_research_ui,
+            inputs=question,
+            outputs=[result, status],
+            concurrency_limit=1,
+            concurrency_id="research",
+            show_progress="hidden",
+        )
         example_one.click(
             fn=lambda: "What recent arXiv work evaluates reliability or failure modes in LLM agents?",
             inputs=None,
@@ -419,6 +719,7 @@ def build_demo() -> gr.Blocks:
             '<div class="footer-note">Evidence Scout · retrieve → verify → synthesize → enforce</div>'
         )
 
+    demo.queue(max_size=1, default_concurrency_limit=1)
     return demo
 
 
