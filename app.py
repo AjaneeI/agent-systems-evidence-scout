@@ -262,6 +262,84 @@ CSS = """
     line-height: 1.45;
     margin-top: 10px;
 }
+.research-loader {
+    min-height: 250px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 28px 18px;
+}
+.loader-orbit {
+    width: 54px;
+    height: 54px;
+    position: relative;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    border: 1px solid rgba(105, 223, 208, .20);
+}
+.loader-orbit::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 2px solid rgba(79, 124, 255, .20);
+    border-top-color: #5d8cff;
+    border-right-color: #69dfd0;
+    animation: evidence-orbit 1.15s linear infinite;
+}
+.loader-orbit::after {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    top: -4px;
+    left: 23px;
+    border-radius: 50%;
+    background: #69dfd0;
+    box-shadow: 0 0 16px rgba(105, 223, 208, .65);
+    animation: evidence-orbit-dot 1.15s linear infinite;
+    transform-origin: 4px 31px;
+}
+.loader-title {
+    color: #f7f9ff;
+    font-size: 17px;
+    font-weight: 720;
+    margin-bottom: 6px;
+}
+.loader-copy {
+    color: #91a3bf;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.loader-track {
+    width: min(250px, 76%);
+    height: 3px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: #17263a;
+    margin: 18px auto 0;
+}
+.loader-track::after {
+    content: "";
+    display: block;
+    width: 42%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #4f7cff, #725fff, #39d8c3);
+    animation: evidence-track 1.6s ease-in-out infinite;
+}
+@keyframes evidence-orbit { to { transform: rotate(360deg); } }
+@keyframes evidence-orbit-dot { to { transform: rotate(360deg); } }
+@keyframes evidence-track {
+    0% { transform: translateX(-110%); opacity: .55; }
+    50% { opacity: 1; }
+    100% { transform: translateX(240%); opacity: .55; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .loader-orbit::before,
+    .loader-orbit::after,
+    .loader-track::after { animation: none !important; }
+}
 #contract-wrap {
     margin-top: 14px;
     border: 1px solid #1f6b68;
@@ -386,8 +464,11 @@ def normalize_agent_output(raw) -> str:
         return str(raw)
 
     text = raw.strip()
+    findings_index = text.find("## Findings")
+    if findings_index > 0:
+        text = text[findings_index:]
     if not (text.startswith("{") and text.endswith("}")):
-        return raw
+        return text
 
     for parser in (json.loads, ast.literal_eval):
         try:
@@ -468,11 +549,14 @@ def run_research_ui(question: str):
 
 def begin_research():
     return (
-        "### Researching…\n\nEvidence Scout is running the bounded research workflow.",
+        "",
         (
-            '<div class="status-card ready"><span class="status-icon">●</span>'
-            '<div class="status-copy"><strong>Researching</strong>'
-            '<span>Searching and verifying before any draft is released.</span></div></div>'
+            '<div class="research-loader" role="status" aria-live="polite" '
+            'aria-label="Researching evidence">'
+            '<div><div class="loader-orbit" aria-hidden="true"></div>'
+            '<div class="loader-title">Researching evidence</div>'
+            '<div class="loader-copy">Searching arXiv and verifying citations before the brief is released.</div>'
+            '<div class="loader-track" aria-hidden="true"></div></div></div>'
         ),
     )
 
@@ -593,6 +677,7 @@ def build_demo() -> gr.Blocks:
             concurrency_limit=1,
             concurrency_id="research",
             trigger_mode="once",
+            show_progress="hidden",
         )
         run_event.then(
             fn=run_research_ui,
@@ -600,6 +685,7 @@ def build_demo() -> gr.Blocks:
             outputs=[result, status],
             concurrency_limit=1,
             concurrency_id="research",
+            show_progress="hidden",
         )
         submit_event = question.submit(
             fn=begin_research,
@@ -608,6 +694,7 @@ def build_demo() -> gr.Blocks:
             concurrency_limit=1,
             concurrency_id="research",
             trigger_mode="once",
+            show_progress="hidden",
         )
         submit_event.then(
             fn=run_research_ui,
@@ -615,6 +702,7 @@ def build_demo() -> gr.Blocks:
             outputs=[result, status],
             concurrency_limit=1,
             concurrency_id="research",
+            show_progress="hidden",
         )
         example_one.click(
             fn=lambda: "What recent arXiv work evaluates reliability or failure modes in LLM agents?",
