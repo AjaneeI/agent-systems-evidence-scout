@@ -48,7 +48,7 @@ THEME = gr.themes.Base(
     primary_hue="blue",
     secondary_hue="indigo",
     neutral_hue="slate",
-    font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"],
+    font=["ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
 ).set(
     body_background_fill="#07111f",
     body_background_fill_dark="#07111f",
@@ -219,6 +219,41 @@ CSS = """
     margin-top: 17px;
 }
 #result-shell .prose a { color: #65a2ff !important; }
+#status-slot { margin: 8px 0 12px; }
+.status-card {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid #294361;
+    border-radius: 12px;
+    background: #0b1728;
+    padding: 10px 12px;
+}
+.status-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    font-weight: 800;
+    color: #a9bddb;
+    background: #17263a;
+}
+.status-copy strong { display: block; color: #f7f9ff; font-size: 12px; }
+.status-copy span { display: block; color: #91a3bf; font-size: 11px; line-height: 1.4; margin-top: 2px; }
+.status-card.success { border-color: #1f6b68; background: #0b2025; }
+.status-card.success .status-icon { color: #63decf; background: #123f3d; }
+.status-card.blocked { border-color: #705d2e; background: #241e10; }
+.status-card.blocked .status-icon { color: #f2c96b; background: #4a3b16; }
+.status-card.error { border-color: #643846; background: #24141a; }
+.status-card.error .status-icon { color: #f28da7; background: #48212c; }
+#verification-note {
+    color: #8296b3;
+    font-size: 11px;
+    line-height: 1.45;
+    margin-top: 10px;
+}
 #contract-wrap {
     margin-top: 14px;
     border: 1px solid #1f6b68;
@@ -344,6 +379,22 @@ def run_research(question: str) -> str:
     return f"{outcome.title}\n\n{outcome.detail}"
 
 
+def render_status(outcome) -> str:
+    icon = {"ready": "•", "success": "✓", "blocked": "!", "error": "×"}.get(outcome.kind, "•")
+    return (
+        f'<div class="status-card {outcome.kind}">'
+        f'<span class="status-icon">{icon}</span>'
+        f'<div class="status-copy"><strong>{outcome.title}</strong>'
+        f'<span>{outcome.detail}</span></div></div>'
+    )
+
+
+def run_research_ui(question: str):
+    outcome = run_research_outcome(question)
+    brief = outcome.brief or f"### {outcome.title}\n\n{outcome.detail}"
+    return brief, render_status(outcome)
+
+
 def build_demo() -> gr.Blocks:
     with gr.Blocks(title="Agent Systems Evidence Scout") as demo:
         gr.HTML(
@@ -413,14 +464,24 @@ def build_demo() -> gr.Blocks:
                     </div>
                     """
                 )
+                status = gr.HTML(
+                    value=(
+                        '<div class="status-card ready"><span class="status-icon">•</span>'
+                        '<div class="status-copy"><strong>Ready to research</strong>'
+                        '<span>No research run has started yet.</span></div></div>'
+                    ),
+                    elem_id="status-slot",
+                )
                 result = gr.Markdown(
                     value=(
                         "### Ready to research\n\n"
                         "Your evidence-backed brief will appear here after the agent retrieves "
-                        "and verifies supporting arXiv papers.\n\n"
-                        "**Verification boundary:** cited papers must pass the deterministic "
-                        "citation gate before the final response is released."
+                        "and verifies supporting arXiv papers."
                     )
+                )
+                gr.HTML(
+                    '<div id="verification-note">Citation verification checks paper identities '
+                    'against arXiv. It does not prove that every research claim is supported.</div>'
                 )
 
         gr.HTML(
@@ -441,8 +502,22 @@ def build_demo() -> gr.Blocks:
             """
         )
 
-        run_button.click(fn=run_research, inputs=question, outputs=result)
-        question.submit(fn=run_research, inputs=question, outputs=result)
+        run_button.click(
+            fn=run_research_ui,
+            inputs=question,
+            outputs=[result, status],
+            concurrency_limit=1,
+            concurrency_id="research",
+            trigger_mode="once",
+        )
+        question.submit(
+            fn=run_research_ui,
+            inputs=question,
+            outputs=[result, status],
+            concurrency_limit=1,
+            concurrency_id="research",
+            trigger_mode="once",
+        )
         example_one.click(
             fn=lambda: "What recent arXiv work evaluates reliability or failure modes in LLM agents?",
             inputs=None,
@@ -458,6 +533,7 @@ def build_demo() -> gr.Blocks:
             '<div class="footer-note">Evidence Scout · retrieve → verify → synthesize → enforce</div>'
         )
 
+    demo.queue(max_size=1, default_concurrency_limit=1)
     return demo
 
 
