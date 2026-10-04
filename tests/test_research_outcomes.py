@@ -111,3 +111,16 @@ def test_stringified_mapping_is_normalized_without_eval_execution():
 def test_plain_markdown_agent_result_is_preserved():
     raw = "## Findings\nAlready formatted.\n\n## Verified references\nhttps://arxiv.org/abs/2501.12345"
     assert app.normalize_agent_output(raw) == raw
+
+
+def test_markdown_preamble_is_removed_before_findings():
+    raw = (
+        "Based on the provided comparison variable, here is the answer:\n\n"
+        "## Findings\nUseful finding.\n\n"
+        "## Evidence\nEvidence body.\n\n"
+        "## Uncertainty / limitations\nLimited scope.\n\n"
+        "## Verified references\nhttps://arxiv.org/abs/2501.12345"
+    )
+    rendered = app.normalize_agent_output(raw)
+    assert rendered.startswith("## Findings")
+    assert "comparison variable" not in rendered
