@@ -6,12 +6,15 @@ from dotenv import load_dotenv
 import gradio as gr
 from smolagents import CodeAgent, InferenceClientModel
 
-from guardrails import enforce_final_answer
+from ui_state import blocked_outcome, error_outcome, invalid_outcome, success_outcome
+
+from guardrails import validate_final_answer
 from tools import (
     compare_arxiv_papers,
     reset_verification_registry,
     search_arxiv,
     verify_arxiv_paper,
+    get_verified_arxiv_ids,
 )
 
 MODEL_ID = "Qwen/Qwen2.5-Coder-32B-Instruct"
@@ -292,17 +295,53 @@ def build_agent() -> CodeAgent:
     )
 
 
-def run_research(question: str) -> str:
+def run_research_outcome(question: str):
     question = (question or "").strip()
     if not question:
-        return "Enter a research question."
+        return invalid_outcome("Add a focused research question.")
     if len(question) > 500:
-        return "Please keep the research question to 500 characters or fewer."
+        return invalid_outcome("Keep the research question to 500 characters or fewer.")
+    if not os.environ.get("HF_TOKEN"):
+        return error_outcome(
+            "token",
+            "Set HF_TOKEN in the local environment before starting a research run.",
+        )
 
     reset_verification_registry()
-    agent = build_agent()
-    draft = agent.run(f"{SYSTEM_TASK}\n\nResearch question:\n{question}")
-    return enforce_final_answer(str(draft))
+    try:
+        agent = build_agent()
+        draft = str(agent.run(f"{SYSTEM_TASK}\n\nResearch question:\n{question}"))
+    except (ConnectionError, TimeoutError, OSError):
+        return error_outcome(
+            "service",
+            "The inference or research service did not respond successfully. Your question is preserved; try again.",
+        )
+    except Exception:
+        return error_outcome(
+            "internal",
+            "Evidence Scout hit an unexpected application error before it could safely return a brief.",
+        )
+
+    gate = validate_final_answer(draft)
+    if not gate.passed:
+        return blocked_outcome(
+            reason=gate.reason,
+            cited_ids=gate.cited_ids,
+            verified_ids=gate.verified_ids,
+        )
+    return success_outcome(
+        draft,
+        cited_ids=gate.cited_ids,
+        verified_ids=gate.verified_ids,
+    )
+
+
+def run_research(question: str) -> str:
+    """Compatibility entry point used by tests and non-UI callers."""
+    outcome = run_research_outcome(question)
+    if outcome.brief:
+        return outcome.brief
+    return f"{outcome.title}\n\n{outcome.detail}"
 
 
 def build_demo() -> gr.Blocks:
