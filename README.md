@@ -57,10 +57,10 @@ The model controls research strategy. Deterministic code controls whether cited 
 ## Live demo
 
 <p align="center">
-  <img src="docs/images/evidence-scout-live-demo.png" alt="Agent Systems Evidence Scout successful live evidence brief" width="100%" />
+  <img src="docs/images/evidence-scout-live-demo.webp" alt="Agent Systems Evidence Scout successful live evidence brief" width="100%" />
 </p>
 
-A successful live Hugging Face + arXiv run retrieved research, verified the papers supporting its response, and returned a structured brief with **Findings, Evidence, Uncertainty / limitations, and Verified references**.
+*Final accepted live demo state: the research question, citation-verification status, and structured evidence brief are visible together in one recruiter-facing view.*\n\nA successful live Hugging Face + arXiv run retrieved research, verified the cited paper identities against arXiv, and returned a structured brief with **Findings, Evidence, Uncertainty / limitations, and Verified references**.
 
 ## Evaluation
 
