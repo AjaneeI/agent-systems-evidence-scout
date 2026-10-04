@@ -65,3 +65,10 @@ def test_unexpected_programming_error_is_not_called_service_outage(monkeypatch):
     assert state.kind == "error"
     assert state.title == "Application error"
     assert "programming bug" not in state.detail
+
+
+def test_begin_research_clears_stale_success_before_new_run():
+    brief, status = app.begin_research()
+    assert "Researching" in brief
+    assert "Researching" in status
+    assert "Citations verified" not in status
