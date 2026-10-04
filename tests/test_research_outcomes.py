@@ -72,3 +72,42 @@ def test_begin_research_clears_stale_success_before_new_run():
     assert "Researching" in brief
     assert "Researching" in status
     assert "Citations verified" not in status
+
+
+def test_structured_agent_result_is_rendered_as_markdown():
+    raw = {
+        "Findings": "Multi-agent systems can outperform simpler approaches in bounded settings.",
+        "Evidence": [
+            "Paper A: https://arxiv.org/abs/2106.06828v1",
+            "Paper B: https://arxiv.org/abs/2610.00538v1",
+        ],
+        "Uncertainty / limitations": "The evidence is domain-specific.",
+        "Verified references": [
+            "https://arxiv.org/abs/2106.06828v1",
+            "https://arxiv.org/abs/2610.00538v1",
+        ],
+    }
+    rendered = app.normalize_agent_output(raw)
+    assert rendered.startswith("## Findings")
+    assert "## Evidence" in rendered
+    assert "## Uncertainty / limitations" in rendered
+    assert "## Verified references" in rendered
+    assert "{'Findings':" not in rendered
+
+
+def test_stringified_mapping_is_normalized_without_eval_execution():
+    raw = (
+        "{'Findings': 'A finding', "
+        "'Evidence': ['https://arxiv.org/abs/2501.12345'], "
+        "'Uncertainty / limitations': 'Limited scope', "
+        "'Verified references': ['https://arxiv.org/abs/2501.12345']}"
+    )
+    rendered = app.normalize_agent_output(raw)
+    assert rendered.startswith("## Findings")
+    assert "- https://arxiv.org/abs/2501.12345" in rendered
+    assert "{'Findings':" not in rendered
+
+
+def test_plain_markdown_agent_result_is_preserved():
+    raw = "## Findings\nAlready formatted.\n\n## Verified references\nhttps://arxiv.org/abs/2501.12345"
+    assert app.normalize_agent_output(raw) == raw
