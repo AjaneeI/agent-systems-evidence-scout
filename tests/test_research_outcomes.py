@@ -3,11 +3,13 @@ import tools
 
 
 class FakeAgent:
-    def __init__(self, answer):
+    def __init__(self, answer, verified_ids=()):
         self.answer = answer
+        self.verified_ids = verified_ids
 
     def run(self, prompt):
         assert "Research question:" in prompt
+        tools._VERIFIED_PAPERS.update(self.verified_ids)
         return self.answer
 
 
@@ -22,9 +24,9 @@ def test_missing_token_is_actionable(monkeypatch):
 def test_verified_citation_returns_success_without_overclaim(monkeypatch):
     monkeypatch.setenv("HF_TOKEN", "test-token")
     tools.reset_verification_registry()
-    tools._VERIFIED_PAPERS.add("2501.12345")
     monkeypatch.setattr(app, "build_agent", lambda: FakeAgent(
-        "## Findings\nSupported finding.\n\n## Verified references\nhttps://arxiv.org/abs/2501.12345"
+        "## Findings\nSupported finding.\n\n## Verified references\nhttps://arxiv.org/abs/2501.12345",
+        verified_ids=("2501.12345",),
     ))
     state = app.run_research_outcome("What evidence exists?")
     assert state.kind == "success"
