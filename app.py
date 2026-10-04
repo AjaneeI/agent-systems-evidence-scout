@@ -395,6 +395,19 @@ def run_research_ui(question: str):
     return brief, render_status(outcome)
 
 
+def begin_research():
+    return (
+        "### Researching…\n\nEvidence Scout is running the bounded research workflow.",
+        (
+            '<div class="status-card ready"><span class="status-icon">●</span>'
+            '<div class="status-copy"><strong>Researching</strong>'
+            '<span>Searching and verifying before any draft is released.</span></div></div>'
+        ),
+    )
+
+
+
+
 def build_demo() -> gr.Blocks:
     with gr.Blocks(title="Agent Systems Evidence Scout") as demo:
         gr.HTML(
@@ -502,21 +515,35 @@ def build_demo() -> gr.Blocks:
             """
         )
 
-        run_button.click(
-            fn=run_research_ui,
-            inputs=question,
+        run_event = run_button.click(
+            fn=begin_research,
+            inputs=None,
             outputs=[result, status],
             concurrency_limit=1,
             concurrency_id="research",
             trigger_mode="once",
         )
-        question.submit(
+        run_event.then(
             fn=run_research_ui,
             inputs=question,
             outputs=[result, status],
             concurrency_limit=1,
             concurrency_id="research",
+        )
+        submit_event = question.submit(
+            fn=begin_research,
+            inputs=None,
+            outputs=[result, status],
+            concurrency_limit=1,
+            concurrency_id="research",
             trigger_mode="once",
+        )
+        submit_event.then(
+            fn=run_research_ui,
+            inputs=question,
+            outputs=[result, status],
+            concurrency_limit=1,
+            concurrency_id="research",
         )
         example_one.click(
             fn=lambda: "What recent arXiv work evaluates reliability or failure modes in LLM agents?",
