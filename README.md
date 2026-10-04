@@ -66,8 +66,8 @@ A successful live Hugging Face + arXiv run retrieved research, verified the pape
 
 | Signal | Verified state |
 | --- | --- |
-| Deterministic tests | **19 passing** on the development Mac |
-| Public CI | Python **3.11 + 3.12** workflow |
+| Deterministic tests | **39 passing** on the accepted release |
+| Public CI | Python **3.11 + 3.12** workflow; both green on the release commit |
 | Source compilation | `python -m py_compile app.py tools.py guardrails.py` passed |
 | Live integration | Real Hugging Face + arXiv run completed successfully |
 | Successful agent path | **4 CodeAgent steps** |
@@ -86,7 +86,7 @@ The first live run exposed a cascading integration failure that the original off
 
 **Fix:** align the verification tool contract, authorize only the standard-library `json` import, accept validated list/tuple comparison input, and add regression coverage.
 
-**Result:** 19 deterministic tests passed and the same live scenario completed successfully in **4 of 6 available steps**.
+**Result:** that integration fix reached 19 deterministic tests and the same live scenario completed successfully in **4 of 6 available steps**. The recruiter-facing demo release later expanded the deterministic suite to **39 passing tests** plus Chromium browser smoke coverage.
 
 > **Engineering takeaway:** deterministic tests validated the controls; live execution exposed model–tool interface behavior they could not.
 
@@ -146,7 +146,7 @@ The last question was used to exercise the integration path; its answer is demo 
 - testable evidence and citation guardrails;
 - offline regression testing plus live agent evaluation;
 - diagnosis of cascading model–tool integration failures;
-- a small, inspectable AI application rather than an open-ended demo.
+- a small, inspectable AI application rather than an open-ended demo;\n- browser-tested recruiter-facing UI states for ready, researching, verified, blocked, and recoverable failures.
 
 ## Scope and limitations
 
