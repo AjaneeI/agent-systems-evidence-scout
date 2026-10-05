@@ -1,13 +1,26 @@
 name: UI Smoke
 
 on:
-  pull_request:
+  push:
+    branches: [main]
     paths:
       - "app.py"
+      - "tools.py"
+      - "guardrails.py"
       - "ui_state.py"
       - "requirements.txt"
       - "tests/browser_smoke.py"
       - ".github/workflows/ui-smoke.yml"
+  pull_request:
+    paths:
+      - "app.py"
+      - "tools.py"
+      - "guardrails.py"
+      - "ui_state.py"
+      - "requirements.txt"
+      - "tests/browser_smoke.py"
+      - ".github/workflows/ui-smoke.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,6 +28,10 @@ permissions:
 jobs:
   browser:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HF_TOKEN: ""
+      GRADIO_ANALYTICS_ENABLED: "False"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

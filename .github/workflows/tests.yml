@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Compile Python sources before installing dependencies
-        run: python -m compileall -q app.py tools.py guardrails.py tests
+        run: python -m compileall -q app.py tools.py guardrails.py ui_state.py tests
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

@@ -11,6 +11,8 @@
   <a href="https://github.com/AjaneeI/agent-systems-evidence-scout/actions/workflows/tests.yml"><img alt="Python tests" src="https://github.com/AjaneeI/agent-systems-evidence-scout/actions/workflows/tests.yml/badge.svg"></a>
 </p>
 
+**Working local prototype.** Preview the interface without a token, or run live research with your own Hugging Face credentials. The image below is a captured successful run, not a hosted service.
+
 <p align="center">
   <a href="#problem">Problem</a> ·
   <a href="#architecture">Architecture</a> ·
@@ -68,15 +70,17 @@ A successful live Hugging Face + arXiv run retrieved research, verified the cite
 
 | Signal | Verified state |
 | --- | --- |
-| Deterministic tests | **39 passing** on the accepted release |
-| Public CI | Python **3.11 + 3.12** workflow; both green on the release commit |
-| Source compilation | `python -m py_compile app.py tools.py guardrails.py` passed |
+| Deterministic tests | **39 passing** on the audited source snapshot |
+| Public CI | Python **3.11 + 3.12** workflow; both passed at commit `04119db` |
+| Source compilation | `python -m py_compile app.py tools.py guardrails.py ui_state.py` passed |
 | Live integration | Real Hugging Face + arXiv run completed successfully |
 | Successful agent path | **4 CodeAgent steps** |
 | Maximum step budget | **6 steps**, unchanged after debugging |
 | Final-answer control | Deterministic citation verification outside the LLM |
 
-The offline suite avoids live model and arXiv calls so the control logic remains repeatable. The live run tests a different boundary: how a model actually interacts with those tool contracts.
+The [audited Python workflow](https://github.com/AjaneeI/agent-systems-evidence-scout/actions/runs/37238401582) ran the 39-test suite at commit `04119db` on Python 3.11 and 3.12. This is a dated snapshot, not a permanently current test count.
+
+The offline suite avoids live model and arXiv calls so the control logic remains repeatable. Unit tests cover outcome handling, citation gates, and UI state; the separate [UI Smoke workflow](https://github.com/AjaneeI/agent-systems-evidence-scout/actions/workflows/ui-smoke.yml) checks initial desktop/mobile layout, example-prompt filling, and horizontal overflow without running a model. The documented live integration run tests a different boundary: how a model actually interacts with the tools. It is not repeated by CI.
 
 ## What the live test caught
 
@@ -120,18 +124,37 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-export HF_TOKEN="your_token_here"
-python app.py
+HF_TOKEN= python app.py
 ```
 
-Then open the local Gradio URL printed in the terminal.
+### Preview without a token
+
+The command above starts the local interface with `HF_TOKEN` deliberately empty. Open the local Gradio URL printed in the terminal. You can inspect the layout and fill an example question without making an inference request. Submitting a question without a token returns a configuration message rather than a research result.
+
+### Optional live research
+
+Stop the preview process, then set `HF_TOKEN` securely in your local environment and run `python app.py` again. Do not commit a token or paste it into an issue. Live research calls Hugging Face Inference and arXiv; provider availability, access, and any charges are separate from the token-free preview.
+
+A preview is not a successful live agent run, and a verified citation is not proof of every research claim.
 
 ### Test
 
 ```bash
 pytest -q
-python -m py_compile app.py tools.py guardrails.py
+python -m py_compile app.py tools.py guardrails.py ui_state.py
 ```
+
+### Browser smoke test (no inference)
+
+With the token-free app running in one terminal, use the same virtual environment in a second terminal:
+
+```bash
+python -m pip install playwright
+python -m playwright install chromium
+python tests/browser_smoke.py
+```
+
+The smoke test expects `http://127.0.0.1:7860` and writes desktop/mobile screenshots to `/tmp/evidence-scout-ui`. On Linux, Playwright may also require system browser dependencies; CI installs them with `python -m playwright install --with-deps chromium`. It tests preview behavior, not live research quality.
 
 ### Example prompts
 
@@ -148,7 +171,8 @@ The last question was used to exercise the integration path; its answer is demo 
 - testable evidence and citation guardrails;
 - offline regression testing plus live agent evaluation;
 - diagnosis of cascading model–tool integration failures;
-- a small, inspectable AI application rather than an open-ended demo;\n- browser-tested recruiter-facing UI states for ready, researching, verified, blocked, and recoverable failures.
+- a small, inspectable AI application rather than an open-ended demo;
+- browser-tested desktop/mobile preview and example-prompt interaction, with separate unit tests for research outcome states.
 
 ## Scope and limitations
 
