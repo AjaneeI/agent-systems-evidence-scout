@@ -13,6 +13,8 @@
 
 **Working local prototype.** Preview the interface without a token, or run live research with your own Hugging Face credentials. The image below is a captured successful run, not a hosted service.
 
+[Read the portfolio case study](https://ajaneeigharo.com/work/agent-systems-evidence-scout) for the project’s architecture, evidence and limitations.
+
 <p align="center">
   <a href="#problem">Problem</a> ·
   <a href="#architecture">Architecture</a> ·
